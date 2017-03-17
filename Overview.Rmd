@@ -1,0 +1,63 @@
+---
+title: "Overview of project components"
+author: "Sarah Graves"
+date: "February 10, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This project was developed to facilitate the use of NEON-AOP data by users who directly relate image data to features on the ground. Specifically, this project faciliates the field-mapping of individual tree crowns at NEON sites, and creation of spectral and lidar attribute data for these individual tree crowns.
+
+*The project is divided into 3 components:*
+
+1. Creating image subsets ("image_subsets")
+1. Extracting pixel values by spatial polygon objects ("extract_by_polys")
+1. Processing extracted pixel data ("data_processing")
+
+# CREATING IMAGE SUBSETS
+
+The goal of this section is to create subsets of the original H5 files. Why? To work with a smaller data file. To work with a more standard image format. 
+
+Example of how these scripts can be used.
+
+Generate image files to load onto tablet computer and delineate features, such as plot boundaries or individual tree crowns, in the field.
+
+*Groups of functions*
+
+* NEON AOP package
+* Relate spatial coordinates or vector attributes to a specific file
+* Spatially locate area of interest in raster object
+* Save image files in various formats
+
+Finally there are a few scripts to automatically generate these files for muliple plot locations
+
+
+# EXTRACTING PIXEL VALUES
+
+The goal of this section is to extract data for individual pixels that fall within spatial polygon objects. Why? To extract relevant information for only the features of interest. This is especially important when workign with the full spectral data.
+
+Example of how these scripts can be used.
+
+Generate a large non-spatial matrix of pixel values for polygons that outline features of interest, such as plots or individual tree crowns.
+
+*Groups of functions*
+
+* Use functions from previous section to identify files to use
+* Extract individual pixel values and assign pixel attributes
+* Re-shape pixel data into a format that is easy to graph
+
+# PROCESSING EXTRACTED PIXEL DATA
+
+The goal of this section is to allow for simple manipulations of hyperspectral data.
+
+*Primary functions*
+
+* Resample to coarser band resolution
+* Remove bands with atmospheric interference
+* Filter spectral data by "greenness" indices
+
+All of these functions are completed and stored in a single R script.
+
