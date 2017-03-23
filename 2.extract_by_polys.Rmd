@@ -1,0 +1,179 @@
+---
+title: "Outline of extraction functions"
+author: "Sarah Graves"
+date: "October 21, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load-packages}
+
+library(sp)
+library(rgdal)
+library(neonAOP)
+
+source("scripts/2.extract_by_polys/functions_crown_spectra_extraction.R")
+
+```
+
+
+This document will describe how data from NEON-AOP data products can be extracted for polygon regions of interest. The primary application is for extracting reflectance values from HDF5 files of individual tree crowns.
+
+The raw data is a shapefile of polygons throughout a site. Each polygon is associated with a specific flight path. This information is stored in an attribute table of the shapefile. Typically, only the last part of the flight path name is recorded. 
+
+```{r load-polygon-data}
+
+# required packages; sp and rgdal
+
+# read in shapefile
+# p_full <- readOGR("../data/dimensions_field_data/2015/OSBS/crown_polygons","OSBS_sample_polygons",verbose = F)
+p_full <- readOGR("../data/dimensions_field_data/2015/OSBS/crown_polygons/OSBS_all_mapped_crowns/polygons",
+                  layer="20160628_OSBS_FL_CR",verbose = F)
+
+# plot data
+plot(p_full)
+
+# attribute tables
+head(p_full@data)
+
+# flight path names
+unique(p_full@data$path)
+
+```
+
+## Subset polygons by flight path
+
+The next function will subset the polygons based on the flight path. This allows functions to be performed on a single set of polygons that are all in the same flight path.
+
+```{r generate-subsets}
+
+pathIndex <- 1
+pathName <- unique(p_full@data$path)[pathIndex]
+
+# requires column number that stores the path names and pathIndex, which is an index in the list of unique paths
+# designed to work in a for loop to go through each pathIndex
+p_subset <- subset_polys(p_full,pathCol = 2,pathIndex = pathIndex)
+
+# create the file name
+#h5_folder <- "D:/NEON_AOP_downloads/OSBS_Reflectance/"
+h5_folder <- "F:/NEON_AOP_downloads/2014/2014_OSBS_1/L1/Spectrometer/Reflectance"
+
+h5_file <- create_file_path(h5_folder,pathName)
+
+
+# create extent object from polygon bounding box
+# extent will be used in neonAOP package
+p_extent <- extent(p_subset@bbox)
+
+# plot subset
+plot(p_subset,main=pathName)
+
+```
+
+## Create extent objects and raster stack
+
+```{r extract-6-band-image-subset}
+
+# source scripts from another analysis folder
+source("../NEON_ITC_mapping_extraction/scripts/functions.R")
+
+# use neonAOP package
+
+# create h5 extent
+h5_extent <- create_extent(h5_file)
+
+# create new extent object that can be applied in the create_stack function
+extent_to_clip <- calculate_index_extent(clipExtent = p_extent,
+                                         h5Extent = h5_extent)
+
+# 6. Create multi-band raster object
+multiband_image <- create_stack(h5_file, 
+             bands=c(16,34,53,96,136,177),
+             epsg = 32617,
+             subset=T,
+             dims = extent_to_clip)
+
+# plot data
+# NOTE!! Check polygon and image location, there is an apparent shift in the polygon location
+plotRGB(multiband_image,stretch="lin",main=pathName)
+plot(p_subset,add=T)
+
+# save file
+# use custom function
+# save_raster_image(multiband_image,
+#                   save_folder = "../data/NEON_dimensions_AOP_data/",
+#                   file_name = paste(pathName,"6bands",sep="_"),
+#                   flatten = F)
+
+```
+
+
+## Extract pixel values of polygons
+
+The final large function is extracting the pixel values for each polygon object in the flight path. The challenging part of this task is exceeding the memory for storing large raster objects.
+
+```{r create-polygon-refl-matrix}
+
+
+# extract values for pixels
+
+refl_matrix <- create_path_refl_matrix(p_subset,extent_to_clip,h5_file,epsg=32617,full_spectra=F,bands=c(184,155,144,89,63,45))
+
+# save file
+write.csv(refl_matrix,"test_extraction.csv",row.names = F)
+
+```
+
+## Calculate mean crown reflectance
+
+One way to simplify the data is to calculate the mean crown reflectance. However, we only want to do this on the pixels that are well-illuminated. This can be done with an NIR filter.
+
+
+
+```{r calculate-mean-crown-reflectance}
+
+plot(multiband_image)
+
+# extracted reflectance data
+refl_matrix <- read.csv("../data/extracted_pixel_reflectance/crown_refl_20140507_143910.csv")
+
+refl_mean <- extract_mean_crown_refl(refl_matrix)
+
+
+```
+
+# Load all reflectance data and save to data folder
+```{r load-refl-tables-compile}
+
+
+refl_folder <- "../data/extracted_pixel_reflectance/"
+
+
+file_paths <- list.files(refl_folder,full.names = T)
+file_names <- list.files(refl_folder,full.names = F)
+
+refl_mean_all <- NA
+
+for(i in 1:length(file_names)){
+  
+  print(file_paths[i])
+  
+  refl_matrix <- read.csv(file_paths[i])
+  
+  refl_mean <- extract_mean_crown_refl(refl_matrix)
+  
+  refl_mean_all <- rbind(refl_mean_all,refl_mean)
+  
+}
+
+# remove first row
+refl_mean_all <- refl_mean_all[-1,]
+
+write.csv(refl_mean_all,"../data/NEON_dimensions_AOP_data/mean_crown_refl/mean_refl_20161025.csv",row.names = F)
+
+```
+

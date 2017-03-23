@@ -1,0 +1,68 @@
+---
+title: "Processing spectral data"
+author: "Sarah Graves"
+date: "February 10, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+Functions:
+
+* resample hyperspectral from 5 to 10 nm - DONE
+* remove atmospheric bands - DONE
+* filter by "greenness" - DONE
+* plot data
+
+
+Load data
+
+```{r load-data}
+
+refl_data <- read.csv("../data/extracted_pixel_reflectance/crown_refl_20140507_143910.csv",stringsAsFactors = F)
+
+aop_bands <- read.csv("../data/NEON_AOP_supplementary_data/neon_aop_bands.csv")
+
+
+```
+
+```{r source-functions}
+
+source("scripts/3.data_processing/functions_filter_refl_data.R")
+
+```
+
+```{r apply-functions}
+
+# create list of bands at 10 nm
+b10 <- downsample_band_list(aop_bands)
+
+# create reflectance matrix
+r10 <- downsample_refl(refl_data[,3:428],
+                     wavelengths = b10$nanometer)
+
+# on 5 nm data
+rg <- filter_for_greenness(refl_data[,3:428],
+                           aop_bands = aop_bands,
+                           NDVI_thresh = 0.6,
+                           NIR_thresh = 0.2,
+                           pixel_attributes = refl_data[,1:2])
+# on 10 nm data
+rg10 <- filter_for_greenness(r10,
+                             aop_bands = b10,
+                             NDVI_thresh = 0.6,
+                             NIR_thresh = 0.2)
+
+# remove atmospheric bands
+rgc <- remove_bad_bands(rg,
+                       aop_bands = aop_bands)
+
+
+rgc10 <- remove_bad_bands(rg10,
+                          aop_bands=b10)
+
+
+```
+
