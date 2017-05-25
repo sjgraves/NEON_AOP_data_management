@@ -34,6 +34,21 @@ source("scripts/1.image_subsets/functions.R")
 
 ```
 
+## Convert H5 to 3-band Geotiff
+
+To view the images in a standard GIS, the neonAOP package can be used to convert a single H5 file for 1 flight path to a 3-band Geotiff file. The only function used for this process is _create_stack_ where the file, EPSG code, and bands are specified. 
+
+
+
+```{r h5-to-geotiff}
+
+
+
+```
+
+
+
+
 
 ## Function overview
 
@@ -45,7 +60,7 @@ find_flight_path
 
 ```
 
-The next step is to find the HDF5 file that corresponds to the identified flight path. Often the files are stored in a single folder for the year and site. Therefore, the function should search through the list of file and find the file with the flight path in the name
+The next step is to find the HDF5 file that corresponds to the identified flight path. Often the files are stored in a single folder for the year and site. Therefore, the function should search through the list of file and find the file with the flight path in the name.
 
 ```{r Identify-H5-file-path}
 
